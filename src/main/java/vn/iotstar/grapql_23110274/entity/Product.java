@@ -15,12 +15,14 @@ public class Product {
 
     private String title;
     private Integer quantity;
-    private String desc;
+    private String description;
     private Double price;
 
     @ManyToOne
     @JoinColumn(name = "userid")
     private User user;
 
-    // Getters and setters
+    @ManyToOne
+    @JoinColumn(name = "categoryid")
+    private Category category;
 }

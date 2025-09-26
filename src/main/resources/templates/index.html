@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product List (GraphQL)</title>
+    <script>
+        function fetchProductsOrderByPrice() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { productsOrderByPrice { id title price } }"
+                })
+            })
+                .then(resp => resp.json())
+                .then(data => {
+                    let html = "";
+                    data.data.productsOrderByPrice.forEach(p => {
+                        html += `<li>${p.title} - ${p.price}</li>`;
+                    });
+                    document.getElementById("productList").innerHTML = html;
+                });
+        }
+
+        function fetchProductsByCategory() {
+            const catId = document.getElementById("categoryId").value;
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: `query { productsByCategory(categoryId: ${catId}) { id title price } }`
+                })
+            })
+                .then(resp => resp.json())
+                .then(data => {
+                    let html = "";
+                    data.data.productsByCategory.forEach(p => {
+                        html += `<li>${p.title} - ${p.price}</li>`;
+                    });
+                    document.getElementById("productListByCat").innerHTML = html;
+                });
+        }
+    </script>
+</head>
+<body>
+<h2>Products by price ascending</h2>
+<button onclick="fetchProductsOrderByPrice()">Load Products</button>
+<ul id="productList"></ul>
+
+<h2>Products by Category</h2>
+<input type="text" id="categoryId" placeholder="Category ID">
+<button onclick="fetchProductsByCategory()">Load Products</button>
+<ul id="productListByCat"></ul>
+</body>
+</html>

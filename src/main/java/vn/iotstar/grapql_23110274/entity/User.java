@@ -9,7 +9,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,5 +28,6 @@ public class User {
     )
     private Set<Category> categories;
 
-
+    @OneToMany(mappedBy = "user")
+    private Set<Product> products;
 }
