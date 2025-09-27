@@ -1,0 +1,222 @@
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: `mutation {
+                        createProduct(
+                            title: "${title}",
+                            quantity: ${quantity},
+                            desc: "${desc}",
+                            price: ${price},
+                            userid: ${userid},
+                            categoryid: ${categoryid}
+                        ) {
+                            id title quantity desc price
+                        }
+                    }`
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const messageDiv = document.getElementById('message');
+                if (data.data && data.data.createProduct) {
+                    messageDiv.innerHTML = '<div class="alert alert-success">Product created successfully!</div>';
+                    document.getElementById('productForm').reset();
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-error">Error creating product. Please check your input.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('message').innerHTML = '<div class="alert alert-error">Error creating product.</div>';
+            });
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Product</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+        }
+        textarea { height: 80px; resize: vertical; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 10px; padding: 5px 10px; text-decoration: none; background-color: #f8f9fa; border: 1px solid #dee2e6; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Products</a>
+        <a href="/users">Users</a>
+        <a href="/categories">Categories</a>
+    </div>
+
+    <h1>Create New Product</h1>
+
+    <div id="message"></div>
+
+    <form id="productForm">
+        <div class="form-group">
+            <label for="title">Product Title:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+
+        <div class="form-group">
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" min="0" required>
+        </div>
+
+        <div class="form-group">
+            <label for="desc">Description:</label>
+            <textarea id="desc" name="desc" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price" step="0.01" min="0" required>
+        </div>
+
+        <div class="form-group">
+            <label for="userid">User:</label>
+            <select id="userid" name="userid" required>
+                <option value="">Select a user</option>
+            </select>
+            <button type="button" onclick="loadUsers()" class="btn-secondary">Load Users</button>
+        </div>
+
+        <div class="form-group">
+            <label for="categoryid">Category:</label>
+            <select id="categoryid" name="categoryid" required>
+                <option value="">Select a category</option>
+            </select>
+            <button type="button" onclick="loadCategories()" class="btn-secondary">Load Categories</button>
+        </div>
+
+        <button type="submit" class="btn-primary">Create Product</button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='/'">Cancel</button>
+    </form>
+
+    <script>
+        // Load users and categories on page load
+        window.onload = function() {
+            loadUsers();
+            loadCategories();
+        };
+
+        function loadUsers() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { allUsers { id fullname } }"
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const userSelect = document.getElementById('userid');
+                userSelect.innerHTML = '<option value="">Select a user</option>';
+
+                if (data.data && data.data.allUsers) {
+                    data.data.allUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.fullname;
+                        userSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+            });
+        }
+
+        function loadCategories() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { allCategories { id name } }"
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const categorySelect = document.getElementById('categoryid');
+                categorySelect.innerHTML = '<option value="">Select a category</option>';
+
+                if (data.data && data.data.allCategories) {
+                    data.data.allCategories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading categories:', error);
+            });
+        }
+
+        document.getElementById('productForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const quantity = document.getElementById('quantity').value;
+            const desc = document.getElementById('desc').value;
+            const price = document.getElementById('price').value;
+            const userid = document.getElementById('userid').value;
+            const categoryid = document.getElementById('categoryid').value;
+
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: `mutation {
+                        createProduct(
+                            title: "${title}",
+                            quantity: ${quantity},
+                            desc: "${desc}",
+                            price: ${price},
+                            userid: ${userid},
+                            categoryid: ${categoryid}
+                }
+                        ) {
+                            id title quantity desc price
+                        }
+                    }`
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const messageDiv = document.getElementById('message');
+                if (data.data && data.data.createProduct) {
+                    messageDiv.innerHTML = '<div class="alert alert-success">Product created successfully!</div>';
+                    document.getElementById('productForm').reset();
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-error">Error creating product. Please check your input.</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('message').innerHTML = '<div class="alert alert-error">Error creating product.</div>';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Category Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 10px; padding: 5px 10px; text-decoration: none; background-color: #f8f9fa; border: 1px solid #dee2e6; }
+        img { max-width: 100px; max-height: 50px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Products</a>
+        <a href="/users">Users</a>
+        <a href="/categories">Categories</a>
+    </div>
+
+    <h1>Category Management</h1>
+    <button class="btn-primary" onclick="window.location.href='/categories/create'">Create New Category</button>
+
+    <h2>All Categories</h2>
+    <button onclick="loadAllCategories()">Load Categories</button>
+    <table id="categoryTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="categoryTableBody">
+        </tbody>
+    </table>
+
+    <script>
+        function loadAllCategories() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { allCategories { id name images } }"
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const tbody = document.getElementById("categoryTableBody");
+                const table = document.getElementById("categoryTable");
+                tbody.innerHTML = "";
+
+                if (data.data && data.data.allCategories) {
+                    data.data.allCategories.forEach(category => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${category.id}</td>
+                            <td>${category.name}</td>
+                            <td>${category.images ? `<img src="${category.images}" alt="Category Image">` : 'No Image'}</td>
+                            <td>
+                                <button class="btn-warning" onclick="editCategory(${category.id})">Edit</button>
+                                <button class="btn-danger" onclick="deleteCategory(${category.id})">Delete</button>
+                            </td>
+                        `;
+                    });
+                    table.style.display = "table";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading categories');
+            });
+        }
+
+        function editCategory(id) {
+            window.location.href = `/categories/edit?id=${id}`;
+        }
+
+        function deleteCategory(id) {
+            if (confirm('Are you sure you want to delete this category?')) {
+                fetch("/graphql", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        query: `mutation { deleteCategory(id: ${id}) }`
+                    })
+                })
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.data && data.data.deleteCategory) {
+                        alert('Category deleted successfully');
+                        loadAllCategories();
+                    } else {
+                        alert('Error deleting category');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting category');
+                });
+            }
+        }
+    </script>
+</body>
+</html>

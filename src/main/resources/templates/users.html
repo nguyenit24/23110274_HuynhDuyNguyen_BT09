@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 10px; padding: 5px 10px; text-decoration: none; background-color: #f8f9fa; border: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Products</a>
+        <a href="/users">Users</a>
+        <a href="/categories">Categories</a>
+    </div>
+
+    <h1>User Management</h1>
+    <button class="btn-primary" onclick="window.location.href='/users/create'">Create New User</button>
+
+    <h2>All Users</h2>
+    <button onclick="loadAllUsers()">Load Users</button>
+    <table id="userTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="userTableBody">
+        </tbody>
+    </table>
+
+    <script>
+        function loadAllUsers() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { allUsers { id fullname email phone } }"
+                })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                const tbody = document.getElementById("userTableBody");
+                const table = document.getElementById("userTable");
+                tbody.innerHTML = "";
+
+                if (data.data && data.data.allUsers) {
+                    data.data.allUsers.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${user.id}</td>
+                            <td>${user.fullname}</td>
+                            <td>${user.email}</td>
+                            <td>${user.phone}</td>
+                            <td>
+                                <button class="btn-warning" onclick="editUser(${user.id})">Edit</button>
+                                <button class="btn-danger" onclick="deleteUser(${user.id})">Delete</button>
+                            </td>
+                        `;
+                    });
+                    table.style.display = "table";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading users');
+            });
+        }
+
+        function editUser(id) {
+            window.location.href = `/users/edit?id=${id}`;
+        }
+
+        function deleteUser(id) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                fetch("/graphql", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        query: `mutation { deleteUser(id: ${id}) }`
+                    })
+                })
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.data && data.data.deleteUser) {
+                        alert('User deleted successfully');
+                        loadAllUsers();
+                    } else {
+                        alert('Error deleting user');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting user');
+                });
+            }
+        }
+    </script>
+</body>
+</html>

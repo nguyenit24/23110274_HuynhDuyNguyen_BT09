@@ -1,54 +1,189 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Product List (GraphQL)</title>
+    <title>Product Management System (GraphQL)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 10px; padding: 5px 10px; text-decoration: none; background-color: #f8f9fa; border: 1px solid #dee2e6; }
+        .nav a:hover { background-color: #e9ecef; }
+        .nav a.active { background-color: #007bff; color: white; }
+        button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; border: none; }
+        .btn-secondary { background-color: #6c757d; color: white; border: none; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 5px; margin: 5px 0; background-color: #f8f9fa; border-radius: 3px; }
+    </style>
     <script>
         function fetchProductsOrderByPrice() {
             fetch("/graphql", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
-                    query: "query { productsOrderByPrice { id title price } }"
+                    query: "query { productsOrderByPrice { id title price user { fullname } category { name } } }"
                 })
             })
                 .then(resp => resp.json())
                 .then(data => {
                     let html = "";
-                    data.data.productsOrderByPrice.forEach(p => {
-                        html += `<li>${p.title} - ${p.price}</li>`;
-                    });
+                    if (data.data && data.data.productsOrderByPrice) {
+                        data.data.productsOrderByPrice.forEach(p => {
+                            html += `<li><strong>${p.title}</strong> - $${p.price}
+                                   <br><small>User: ${p.user ? p.user.fullname : 'N/A'}, Category: ${p.category ? p.category.name : 'N/A'}</small>
+                                   <br><button onclick="editProduct(${p.id})" class="btn-secondary">Edit</button>
+                                   <button onclick="deleteProduct(${p.id})" class="btn-danger">Delete</button></li>`;
+                        });
+                    }
                     document.getElementById("productList").innerHTML = html;
                 });
         }
 
         function fetchProductsByCategory() {
             const catId = document.getElementById("categoryId").value;
+            if (!catId) {
+                alert('Please enter a category ID');
+                return;
+            }
             fetch("/graphql", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
-                    query: `query { productsByCategory(categoryId: ${catId}) { id title price } }`
+                    query: `query { productsByCategory(categoryId: ${catId}) { id title price user { fullname } category { name } } }`
                 })
             })
                 .then(resp => resp.json())
                 .then(data => {
                     let html = "";
-                    data.data.productsByCategory.forEach(p => {
-                        html += `<li>${p.title} - ${p.price}</li>`;
-                    });
+                    if (data.data && data.data.productsByCategory) {
+                        data.data.productsByCategory.forEach(p => {
+                            html += `<li><strong>${p.title}</strong> - $${p.price}
+                                   <br><small>User: ${p.user ? p.user.fullname : 'N/A'}, Category: ${p.category ? p.category.name : 'N/A'}</small>
+                                   <br><button onclick="editProduct(${p.id})" class="btn-secondary">Edit</button>
+                                   <button onclick="deleteProduct(${p.id})" class="btn-danger">Delete</button></li>`;
+                        });
+                    }
                     document.getElementById("productListByCat").innerHTML = html;
                 });
+        }
+
+        function fetchAllProducts() {
+            fetch("/graphql", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    query: "query { allProducts { id title price quantity desc user { fullname } category { name } } }"
+                })
+            })
+                .then(resp => resp.json())
+                .then(data => {
+                    const tbody = document.getElementById("allProductsBody");
+                    const table = document.getElementById("allProductsTable");
+                    tbody.innerHTML = "";
+
+                    if (data.data && data.data.allProducts) {
+                        data.data.allProducts.forEach(p => {
+                            const row = tbody.insertRow();
+                            row.innerHTML = `
+                                <td>${p.id}</td>
+                                <td>${p.title}</td>
+                                <td>${p.quantity}</td>
+                                <td>${p.desc}</td>
+                                <td>$${p.price}</td>
+                                <td>${p.user ? p.user.fullname : 'N/A'}</td>
+                                <td>${p.category ? p.category.name : 'N/A'}</td>
+                                <td>
+                                    <button onclick="editProduct(${p.id})" class="btn-secondary">Edit</button>
+                                    <button onclick="deleteProduct(${p.id})" class="btn-danger" style="background-color: #dc3545;">Delete</button>
+                                </td>
+                            `;
+                        });
+                        table.style.display = "table";
+                    }
+                });
+        }
+
+        function editProduct(id) {
+            window.location.href = `/products/edit?id=${id}`;
+        }
+
+        function deleteProduct(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                fetch("/graphql", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        query: `mutation { deleteProduct(id: ${id}) }`
+                    })
+                })
+                .then(resp => resp.json())
+                .then(data => {
+                    if (data.data && data.data.deleteProduct) {
+                        alert('Product deleted successfully');
+                        // Refresh the current view
+                        fetchAllProducts();
+                        fetchProductsOrderByPrice();
+                    } else {
+                        alert('Error deleting product');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting product');
+                });
+            }
         }
     </script>
 </head>
 <body>
-<h2>Products by price ascending</h2>
-<button onclick="fetchProductsOrderByPrice()">Load Products</button>
-<ul id="productList"></ul>
+    <div class="nav">
+        <a href="/" class="active">Products</a>
+        <a href="/users">Users</a>
+        <a href="/categories">Categories</a>
+    </div>
 
-<h2>Products by Category</h2>
-<input type="text" id="categoryId" placeholder="Category ID">
-<button onclick="fetchProductsByCategory()">Load Products</button>
-<ul id="productListByCat"></ul>
+    <h1>Product Management System</h1>
+
+    <div class="section">
+        <h2>Product Actions</h2>
+        <button onclick="window.location.href='/products/create'" class="btn-primary">Create New Product</button>
+        <button onclick="fetchAllProducts()" class="btn-secondary">Load All Products</button>
+    </div>
+
+    <div class="section">
+        <h2>All Products</h2>
+        <table id="allProductsTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Quantity</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>User</th>
+                    <th>Category</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="allProductsBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Products by price (ascending)</h2>
+        <button onclick="fetchProductsOrderByPrice()" class="btn-secondary">Load Products by Price</button>
+        <ul id="productList"></ul>
+    </div>
+
+    <div class="section">
+        <h2>Products by Category</h2>
+        <input type="number" id="categoryId" placeholder="Enter Category ID">
+        <button onclick="fetchProductsByCategory()" class="btn-secondary">Load Products by Category</button>
+        <ul id="productListByCat"></ul>
+    </div>
 </body>
 </html>
